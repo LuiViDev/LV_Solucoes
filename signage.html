@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mídia Indoor</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --accent: #e8ff00;
+    --text: #ffffff;
+    --muted: rgba(255,255,255,0.45);
+    --panel-bg: rgba(10,10,10,0.96);
+    --panel-border: rgba(255,255,255,0.1);
+    --input-bg: rgba(255,255,255,0.06);
+    --input-border: rgba(255,255,255,0.14);
+    --radius: 10px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    overflow: hidden;
+  }
+
+  #loader {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 18px;
+    transition: opacity .5s ease;
+  }
+  #loader.hidden { opacity: 0; pointer-events: none; }
+  .loader-ring {
+    width: 48px; height: 48px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loaderDetail { font-size: 13px; color: var(--muted); max-width: 340px; text-align: center; line-height: 1.6; }
+
+  #stage { position: fixed; inset: 0; background: #000; }
+
+  .slide-img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity .8s ease;
+  }
+  .slide-img.front { opacity: 1; }
+
+  #youtubeWrap {
+    position: absolute; inset: 0;
+    opacity: 0;
+    transition: opacity .6s ease;
+    pointer-events: none;
+  }
+  #youtubeWrap.active { opacity: 1; pointer-events: auto; }
+  #youtubeIframe { width: 100%; height: 100%; border: none; }
+
+  #hud {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 0 28px 20px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    background: linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+  }
+  #brand {
+    font-size: 15px; font-weight: 600;
+    letter-spacing: .04em;
+    color: var(--accent);
+    cursor: default;
+    pointer-events: auto;
+    user-select: none;
+  }
+  #clock {
+    font-size: 22px; font-weight: 300;
+    letter-spacing: .08em;
+    color: rgba(255,255,255,0.85);
+  }
+  #slideStatus {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    font-size: 12px; color: var(--muted);
+    background: rgba(0,0,0,.6);
+    padding: 4px 14px; border-radius: 20px;
+    z-index: 10; pointer-events: none;
+    max-width: 80vw; text-align: center;
+    opacity: 0; transition: opacity .4s ease;
+  }
+  #slideStatus.visible { opacity: 1; }
+
+  #toast {
+    position: fixed; top: 20px; right: 20px;
+    background: rgba(20,20,20,.96);
+    border: 1px solid var(--panel-border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 13px; line-height: 1.5;
+    max-width: 340px; z-index: 200;
+    transform: translateX(calc(100% + 28px));
+    transition: transform .35s ease;
+  }
+  #toast.error { border-left-color: #ff5f5f; }
+  #toast.show { transform: translateX(0); }
+  #toast strong { display: block; margin-bottom: 3px; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+
+  #setupBackdrop {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(0,0,0,.78);
+    backdrop-filter: blur(4px);
+    display: none;
+  }
+  #setupBackdrop.open { display: block; }
+
+  #setupPanel {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(.96);
+    opacity: 0;
+    z-index: 51;
+    width: min(580px, 96vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 28px 28px 24px;
+    transition: transform .25s ease, opacity .25s ease;
+    display: none;
+  }
+  #setupPanel.open { display: block; transform: translate(-50%,-50%) scale(1); opacity: 1; }
+  #setupPanel::-webkit-scrollbar { width: 5px; }
+  #setupPanel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+
+  .setup-title { font-size: 17px; font-weight: 600; margin-bottom: 22px; display: flex; align-items: center; gap: 8px; }
+  .setup-title span { color: var(--accent); }
+
+  .field-group { margin-bottom: 15px; }
+  .field-group label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 6px; }
+  .field-group input {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 7px;
+    color: var(--text);
+    font-size: 13px; font-family: var(--font);
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .field-group input:focus { border-color: var(--accent); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .setup-sep { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 20px 0 12px; border-top: 1px solid var(--panel-border); padding-top: 18px; }
+
+  .hint { font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+  .btn { flex: 1; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: var(--font); cursor: pointer; border: none; transition: filter .15s; min-width: 90px; }
+  .btn:hover { filter: brightness(1.12); }
+  .btn-save   { background: var(--accent); color: #0a0a0a; }
+  .btn-cancel { background: var(--input-bg); color: var(--text); border: 1px solid var(--input-border); }
+  .btn-reset  { background: transparent; color: #ff5f5f; border: 1px solid rgba(255,95,95,.3); flex: 0 0 auto; }
+
+  .checkbox-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.7); cursor: pointer; user-select: none; }
+  .checkbox-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="loader-ring"></div>
+  <div id="loaderDetail">Iniciando…</div>
+</div>
+
+<div id="stage">
+  <img id="imgA" class="slide-img" src="" alt="">
+  <img id="imgB" class="slide-img" src="" alt="">
+  <div id="youtubeWrap">
+    <iframe id="youtubeIframe" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="brand">Mídia Indoor</div>
+  <div id="clock">--:--</div>
+</div>
+<div id="slideStatus"></div>
+
+<div id="toast"><strong id="toastTitle"></strong><span id="toastBody"></span></div>
+
+<div id="setupBackdrop"></div>
+
+<div id="setupPanel">
+  <div class="setup-title">⚙ Configurações — <span>Mídia Indoor</span></div>
+
+  <div class="field-group">
+    <label>URL do CSV (Google Sheets publicado)</label>
+    <input id="cfgCsv" type="url" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?output=csv">
+    <p class="hint">Sheets → Arquivo → Publicar na web → aba → CSV → copiar link.</p>
+  </div>
+
+  <div class="field-group">
+    <label>Nome / Marca (rodapé)</label>
+    <input id="cfgBrand" type="text" placeholder="Mídia Indoor">
+  </div>
+
+  <div class="setup-sep">Temporização (milissegundos)</div>
+  <div class="field-row">
+    <div class="field-group">
+      <label>Duração — imagem</label>
+      <input id="cfgSlideMs" type="number" min="1500" step="500">
+    </div>
+    <div class="field-group">
+      <label>Duração — YouTube</label>
+      <input id="cfgYtMs" type="number" min="5000" step="1000">
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field-group">
+      <label>Atualizar lista (ms)</label>
+      <input id="cfgRefreshMs" type="number" min="5000" step="1000">
+    </div>
+    <div class="field-group">
+      <label>Transição fade (ms)</label>
+      <input id="cfgFadeMs" type="number" min="100" step="100">
+    </div>
+  </div>
+
+  <div class="setup-sep">Exibição</div>
+  <label class="checkbox-row">
+    <input id="cfgLoop" type="checkbox"> Repetir lista em loop
+  </label>
+
+  <div class="btn-row">
+    <button class="btn btn-save" id="btnSave">Salvar e reiniciar</button>
+    <button class="btn btn-cancel" id="btnCancel">Cancelar</button>
+    <button class="btn btn-reset" id="btnReset">Resetar local</button>
+  </div>
+</div>
+
+<script>
+const DEFAULTS = {
+  csvUrl:    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQV4wEUWYV3BilpIpsM63UD5dFfnKxlmEOE30SiHDvPLX80ni-gHh91Ssq525gh_Rb_G732tKPoLEJi/pub?gid=0&single=true&output=csv",
+  brand:     "Mídia Indoor",
+  slideMs:   10000,
+  ytMs:      45000,
+  refreshMs: 60000,
+  fadeMs:    800,
+  loop:      true,
+};
+
+const LS_KEY = "indoor_cfg_v2";
+let CFG = { ...DEFAULTS };
+
+function loadCfg() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    for (const k of Object.keys(DEFAULTS)) {
+      if (k === "csvUrl") { if (saved[k] && String(saved[k]).startsWith("http")) CFG[k] = saved[k]; }
+      else if (saved[k] !== undefined) CFG[k] = saved[k];
+    }
+  } catch {}
+}
+
+function saveCfg()  { try { localStorage.setItem(LS_KEY, JSON.stringify(CFG)); } catch {} }
+function clearCfg() { try { localStorage.removeItem(LS_KEY); } catch {} }
+
+// DOM
+const $ = id => document.getElementById(id);
+const elLoader    = $("loader");
+const elLoaderTxt = $("loaderDetail");
+const elImgA      = $("imgA");
+const elImgB      = $("imgB");
+const elYtWrap    = $("youtubeWrap");
+const elYtFrame   = $("youtubeIframe");
+const elBrand     = $("brand");
+const elClock     = $("clock");
+const elStatus    = $("slideStatus");
+const elToast     = $("toast");
+const elBackdrop  = $("setupBackdrop");
+const elPanel     = $("setupPanel");
+
+// Clock
+function tickClock() {
+  const d = new Date();
+  elClock.textContent = String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+tickClock(); setInterval(tickClock, 1000);
+
+// Toast
+let toastTimer = null;
+function toast(title, msg, type, ms = 6000) {
+  clearTimeout(toastTimer);
+  $("toastTitle").textContent = title;
+  $("toastBody").textContent  = msg;
+  elToast.className = (type === "error" ? "error" : "") + " show";
+  toastTimer = setTimeout(() => elToast.classList.remove("show"), ms);
+}
+
+// Status
+let statusTimer = null;
+function showStatus(text, autoHide = true) {
+  elStatus.textContent = text;
+  elStatus.classList.add("visible");
+  clearTimeout(statusTimer);
+  if (autoHide) statusTimer = setTimeout(() => elStatus.classList.remove("visible"), 3500);
+}
+
+function setLoader(on, text) {
+  if (text) elLoaderTxt.textContent = text;
+  elLoader.classList.toggle("hidden", !on);
+}
+
+function applyBrand() {
+  elBrand.textContent = CFG.brand || "Mídia Indoor";
+  document.title      = CFG.brand || "Mídia Indoor";
+}
+
+// YouTube
+function extractYtId(url) {
+  try {
+    const u = new URL(String(url).trim());
+    const h = u.hostname.replace(/^www\./, "");
+    if (h === "youtu.be") return u.pathname.slice(1).split("/")[0] || null;
+    if (h.includes("youtube.com")) {
+      for (const p of ["/embed/","/shorts/","/live/"]) {
+        if (u.pathname.startsWith(p)) return u.pathname.slice(p.length).split("/")[0];
+      }
+      return u.searchParams.get("v");
+    }
+  } catch {}
+  return null;
+}
+const isYt = url => Boolean(extractYtId(url));
+
+function ytSrc(id) {
+  const e = encodeURIComponent(id);
+  return `https://www.youtube.com/embed/${e}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&modestbranding=1&loop=1&playlist=${e}`;
+}
+function clearYt() { elYtFrame.src = ""; elYtWrap.classList.remove("active"); }
+function showYt(url) {
+  return new Promise(resolve => {
+    const id = extractYtId(url);
+    if (!id) { resolve(); return; }
+    elYtFrame.src = ytSrc(id);
+    elYtWrap.classList.add("active");
+    elYtFrame.addEventListener("load", resolve, { once: true });
+    setTimeout(resolve, 5000);
+  });
+}
+
+// Crossfade
+let frontIsA = true;
+const getFront = () => frontIsA ? elImgA : elImgB;
+const getBack  = () => frontIsA ? elImgB : elImgA;
+
+function tryLoad(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.referrerPolicy = "no-referrer";
+    img.onload  = () => resolve(src);
+    img.onerror = () => reject();
+    img.src = src;
+  });
+}
+
+async function crossfade(src) {
+  let final = src;
+  try { await tryLoad(src); }
+  catch {
+    const m = String(src).match(/[?&]id=([^&]+)/);
+    const fb = m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w1920` : null;
+    if (fb) { try { await tryLoad(fb); final = fb; } catch { throw new Error("Inacessível: " + src); } }
+    else throw new Error("Inacessível: " + src);
+  }
+  const back = getBack();
+  back.src = final;
+  back.style.transitionDuration = CFG.fadeMs + "ms";
+  getFront().classList.remove("front");
+  back.classList.add("front");
+  frontIsA = !frontIsA;
+}
+
+// CSV
+function normalizeUrl(url) {
+  const u = url.replace(/^\uFEFF/, "").trim();
+  const m1 = u.match(/drive\.google\.com\/file\/d\/([^/]+)\/view/i);
+  if (m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
+  const m2 = u.match(/drive\.google\.com\/open\?id=([^&]+)/i);
+  if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+  return u;
+}
+
+function parseCsv(text) {
+  const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").filter(l => l.trim());
+  if (!lines.length) return [];
+  const delim = (lines[0].match(/;/g)||[]).length > (lines[0].match(/,/g)||[]).length ? ";" : ",";
+
+  function parseLine(line) {
+    const out = []; let cur = ""; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { if (inQ && line[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; continue; }
+      if (!inQ && ch === delim) { out.push(cur); cur = ""; continue; }
+      cur += ch;
+    }
+    out.push(cur);
+    return out.map(v => v.trim().replace(/^"(.*)"$/, "$1").trim());
+  }
+
+  const rows = lines.map(parseLine);
+  const HDR = ["url","image","imagem","img","foto","link"];
+  const hasHeader = rows[0].some(c => HDR.includes(c.toLowerCase()));
+  let col = 0;
+  if (hasHeader) {
+    const h = rows[0].map(c => c.toLowerCase());
+    for (const k of HDR) { const i = h.indexOf(k); if (i !== -1) { col = i; break; } }
+  }
+  const data = hasHeader ? rows.slice(1) : rows;
+  const seen = new Set(); const out = [];
+  for (const row of data) {
+    const raw = (row[col] ?? row[0] ?? "").replace(/^\uFEFF/,"").trim();
+    if (!raw || (!raw.startsWith("http://") && !raw.startsWith("https://"))) continue;
+    const norm = normalizeUrl(raw);
+    if (seen.has(norm)) continue;
+    seen.add(norm); out.push(norm);
+  }
+  return out;
+}
+
+async function fetchUrls() {
+  const url = CFG.csvUrl;
+  if (!url || !url.startsWith("http")) throw new Error("URL do CSV inválida.");
+  const resp = await fetch(url, { cache: "no-store" });
+  if (!resp.ok) throw new Error(`Falha ao baixar CSV — HTTP ${resp.status}.`);
+  const text = await resp.text();
+  const urls = parseCsv(text);
+  if (!urls.length) throw new Error("CSV carregado, mas sem URLs válidas na planilha.");
+  return urls;
+}
+
+// Player
+let urls = [], idx = 0, slidesTimer = null, refreshTimer = null;
+const stopPlayer  = () => { clearTimeout(slidesTimer); slidesTimer = null; };
+const startPlayer = () => { stopPlayer(); slidesTimer = setTimeout(playNext, 0); };
+
+async function playNext() {
+  if (!urls.length) { showStatus("Sem itens — configure o CSV (F10).", false); return; }
+  const url   = urls[idx];
+  const delay = Math.max(1500, isYt(url) ? CFG.ytMs : CFG.slideMs);
+  showStatus(`${idx + 1} / ${urls.length}`, false);
+  try {
+    clearYt();
+    if (isYt(url)) await showYt(url);
+    else           await crossfade(url);
+  } catch (e) { showStatus(`Erro item ${idx + 1}: ${e.message}`); }
+  idx = (idx + 1) % urls.length;
+  if (!CFG.loop && idx === 0) { showStatus("Fim da lista."); return; }
+  clearTimeout(slidesTimer);
+  slidesTimer = setTimeout(playNext, delay);
+}
+
+async function doRefresh(noisy = false) {
+  try {
+    const fresh = await fetchUrls();
+    urls = fresh;
+    if (idx >= urls.length) idx = 0;
+    if (noisy) showStatus(`Lista atualizada — ${urls.length} itens`);
+    return true;
+  } catch (e) {
+    if (noisy) toast("CSV", e.message, "error", 10000);
+    return false;
+  }
+}
+
+function startRefreshLoop() {
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => doRefresh(false), Math.max(5000, CFG.refreshMs));
+}
+
+// Setup panel
+function panelFill() {
+  $("cfgCsv").value       = CFG.csvUrl;
+  $("cfgBrand").value     = CFG.brand;
+  $("cfgSlideMs").value   = CFG.slideMs;
+  $("cfgYtMs").value      = CFG.ytMs;
+  $("cfgRefreshMs").value = CFG.refreshMs;
+  $("cfgFadeMs").value    = CFG.fadeMs;
+  $("cfgLoop").checked    = CFG.loop;
+}
+
+function panelOpen()  { panelFill(); elBackdrop.classList.add("open"); elPanel.classList.add("open"); }
+function panelClose() { elBackdrop.classList.remove("open"); elPanel.classList.remove("open"); }
+
+function clampNum(val, min, fb) { const n = Number(val); return (Number.isFinite(n) && n >= min) ? Math.floor(n) : fb; }
+
+$("btnCancel").addEventListener("click", panelClose);
+elBackdrop.addEventListener("click", e => { if (e.target === elBackdrop) panelClose(); });
+
+$("btnSave").addEventListener("click", async () => {
+  const newCsv = $("cfgCsv").value.trim();
+  if (!newCsv.startsWith("http")) { toast("Atenção", "Cole uma URL válida (https://).", "error", 7000); return; }
+  CFG.csvUrl    = newCsv;
+  CFG.brand     = $("cfgBrand").value.trim() || "Mídia Indoor";
+  CFG.slideMs   = clampNum($("cfgSlideMs").value,   1500, 10000);
+  CFG.ytMs      = clampNum($("cfgYtMs").value,      5000, 45000);
+  CFG.refreshMs = clampNum($("cfgRefreshMs").value, 5000, 60000);
+  CFG.fadeMs    = clampNum($("cfgFadeMs").value,     100,   800);
+  CFG.loop      = $("cfgLoop").checked;
+  saveCfg(); applyBrand(); panelClose();
+  stopPlayer(); setLoader(true, "Carregando lista de imagens…");
+  const ok = await doRefresh(true);
+  setLoader(false);
+  if (ok) { idx = 0; startPlayer(); startRefreshLoop(); toast("Configuração", `Salvo! ${urls.length} itens carregados.`, "info", 4000); }
+});
+
+$("btnReset").addEventListener("click", () => {
+  if (!confirm("Apagar configurações salvas neste dispositivo e recarregar?")) return;
+  clearCfg(); location.reload();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "F10") { e.preventDefault(); elPanel.classList.contains("open") ? panelClose() : panelOpen(); }
+  if (e.key === "Escape") panelClose();
+});
+
+let tapLog = [];
+elBrand.addEventListener("click", () => {
+  const now = Date.now();
+  tapLog = tapLog.filter(t => now - t < 3000);
+  tapLog.push(now);
+  if (tapLog.length >= 6) { tapLog = []; panelOpen(); }
+});
+
+// Boot
+async function boot() {
+  loadCfg(); applyBrand();
+  const q = new URLSearchParams(location.search);
+  if (q.has("setup")) setTimeout(panelOpen, 120);
+  setLoader(true, "Carregando lista de imagens…");
+  const ok = await doRefresh(true);
+  setLoader(false);
+  if (ok) { idx = 0; startPlayer(); startRefreshLoop(); }
+  else {
+    showStatus("Falha ao carregar CSV — verifique a URL (F10).", false);
+    toast("CSV não carregado", "Verifique se a planilha está publicada corretamente. Pressione F10 para configurar.", "error", 15000);
+  }
+}
+
+boot();
+</script>
+</body>
+</html>
