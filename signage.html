@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signage TV - Indoor Media</title>
+    <title>Signage TV</title>
     <style>
         * {
             margin: 0;
@@ -14,7 +14,7 @@
         body {
             background: #000;
             overflow: hidden;
-            font-family: 'Segoe UI', Arial, sans-serif;
+            font-family: Arial, sans-serif;
         }
 
         #container {
@@ -60,16 +60,15 @@
             border: none;
         }
 
-        /* Painel de configuração */
         #config-panel {
             position: fixed;
             top: 0;
-            right: -400px;
-            width: 400px;
+            right: -350px;
+            width: 350px;
             height: 100vh;
             background: rgba(20, 20, 20, 0.98);
             color: #fff;
-            padding: 30px;
+            padding: 25px;
             z-index: 9999;
             transition: right 0.3s ease;
             overflow-y: auto;
@@ -81,106 +80,91 @@
         }
 
         #config-panel h2 {
-            margin-bottom: 25px;
-            color: #00d4ff;
-            font-size: 24px;
-            border-bottom: 2px solid #00d4ff;
-            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #4CAF50;
+            font-size: 20px;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 8px;
         }
 
         #config-panel label {
             display: block;
-            margin-top: 20px;
-            margin-bottom: 8px;
-            font-size: 13px;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-size: 12px;
             color: #aaa;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         #config-panel input[type="text"],
         #config-panel input[type="number"] {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             background: #1a1a1a;
             border: 1px solid #333;
             color: #fff;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         #config-panel input:focus {
             outline: none;
-            border-color: #00d4ff;
+            border-color: #4CAF50;
         }
 
         #config-panel button {
             width: 100%;
-            padding: 14px;
-            margin-top: 25px;
-            background: #00d4ff;
-            color: #000;
+            padding: 12px;
+            margin-top: 20px;
+            background: #4CAF50;
+            color: #fff;
             border: none;
             border-radius: 4px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
         #config-panel button:hover {
-            background: #00b8e6;
-        }
-
-        #config-panel button:active {
-            transform: scale(0.98);
+            background: #45a049;
         }
 
         #config-panel .info {
-            margin-top: 30px;
-            padding: 15px;
-            background: rgba(0, 212, 255, 0.1);
-            border-left: 3px solid #00d4ff;
-            font-size: 12px;
-            line-height: 1.6;
+            margin-top: 20px;
+            padding: 12px;
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 3px solid #4CAF50;
+            font-size: 11px;
+            line-height: 1.5;
             color: #ccc;
         }
 
-        /* Logo para abrir painel */
         #logo-trigger {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            background: rgba(0, 212, 255, 0.2);
+            bottom: 15px;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            background: rgba(76, 175, 80, 0.3);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 9998;
-            transition: all 0.3s;
-            color: #00d4ff;
-            font-size: 24px;
-            font-weight: bold;
+            color: #4CAF50;
+            font-size: 20px;
         }
 
-        #logo-trigger:hover {
-            background: rgba(0, 212, 255, 0.4);
-            transform: scale(1.1);
-        }
-
-        /* Status indicator */
         #status {
             position: fixed;
-            top: 20px;
-            left: 20px;
-            padding: 10px 20px;
+            top: 15px;
+            left: 15px;
+            padding: 8px 15px;
             background: rgba(0, 0, 0, 0.7);
-            color: #00d4ff;
-            border-radius: 20px;
-            font-size: 12px;
+            color: #4CAF50;
+            border-radius: 15px;
+            font-size: 11px;
             z-index: 9997;
             display: none;
         }
@@ -194,18 +178,18 @@
 
 <div id="container"></div>
 <div id="status">Carregando...</div>
-<div id="logo-trigger" title="Configurações (F10 ou 6 toques)">⚙️</div>
+<div id="logo-trigger">⚙️</div>
 
 <div id="config-panel">
     <h2>⚙️ Configurações</h2>
     
-    <label>URL do CSV (Google Sheets publicado)</label>
-    <input type="text" id="csv-url" placeholder="https://docs.google.com/spreadsheets/d/1Wauj_SAqmsdTQMlbCdp3cO7pYW6bluTMfjYTABDX0Zs/edit?gid=0#gid=0">
+    <label>URL do CSV</label>
+    <input type="text" id="csv-url">
     
     <label>Duração Imagem (ms)</label>
     <input type="number" id="image-duration" value="10000">
     
-    <label>Duração Vídeo MP4 (ms) - 0 = duração total do vídeo</label>
+    <label>Duração Vídeo (ms) - 0 = até o fim</label>
     <input type="number" id="video-duration" value="0">
     
     <label>Duração YouTube (ms)</label>
@@ -217,361 +201,266 @@
     <label>Fade (ms)</label>
     <input type="number" id="fade-duration" value="800">
     
-    <button onclick="saveConfig()">💾 Salvar Configurações</button>
+    <button onclick="saveConfig()">💾 Salvar</button>
     
     <div class="info">
-        <strong>📝 Formatos suportados:</strong><br>
-        • Imagens: JPG, PNG, GIF, WEBP<br>
-        • <strong>Vídeos: MP4, WEBM (com autoplay)</strong><br>
-        • YouTube: https://youtu.be/VIDEO_ID<br>
-        • Google Drive: links de visualização<br><br>
-        <strong>💡 Dica:</strong> Para vídeos MP4, deixe a duração em 0 para tocar até o final.
+        <strong>Formatos:</strong><br>
+        • Imagens: JPG, PNG, GIF<br>
+        • Vídeos: MP4, WEBM<br>
+        • YouTube: youtu.be/ID<br><br>
+        <strong>F10</strong> ou <strong>6 toques</strong>
     </div>
 </div>
 
 <script>
-    // ═══════════════════════════════════════════════════════
-    // CONFIG & STATE
-    // ═══════════════════════════════════════════════════════
-    let config = {
-        csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQV4wEUWYV3BilpIpsM63UD5dFfnKxlmEOE30SiHDvPLX80ni-gHh91Ssq525gh_Rb_G732tKPoLEJi/pub?gid=0&single=true&output=csv',
-        imageDuration: 10000,
-        videoDuration: 0, // 0 = toca até o fim
-        youtubeDuration: 45000,
-        refreshInterval: 60000,
-        fadeDuration: 800
-    };
+let config = {
+    csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQV4wEUWYV3BilpIpsM63UD5dFfnKxlmEOE30SiHDvPLX80ni-gHh91Ssq525gh_Rb_G732tKPoLEJi/pub?gid=0&single=true&output=csv',
+    imageDuration: 10000,
+    videoDuration: 0,
+    youtubeDuration: 45000,
+    refreshInterval: 60000,
+    fadeDuration: 800
+};
 
-    let mediaList = [];
-    let currentIndex = 0;
-    let isPlaying = false;
-    let currentTimeout = null;
-    let currentVideoElement = null;
+let mediaList = [];
+let currentIndex = 0;
+let isPlaying = false;
+let currentTimeout = null;
 
-    // ═══════════════════════════════════════════════════════
-    // LOAD CONFIG FROM LOCALSTORAGE
-    // ═══════════════════════════════════════════════════════
-    function loadConfig() {
-        const saved = localStorage.getItem('signage-config');
-        if (saved) {
-            try {
-                config = { ...config, ...JSON.parse(saved) };
-            } catch (e) {
-                console.error('Erro ao carregar config:', e);
-            }
-        }
-        updateConfigUI();
-    }
-
-    function updateConfigUI() {
-        document.getElementById('csv-url').value = config.csvUrl;
-        document.getElementById('image-duration').value = config.imageDuration;
-        document.getElementById('video-duration').value = config.videoDuration;
-        document.getElementById('youtube-duration').value = config.youtubeDuration;
-        document.getElementById('refresh-interval').value = config.refreshInterval;
-        document.getElementById('fade-duration').value = config.fadeDuration;
-        
-        // Atualiza CSS da transição
-        document.querySelectorAll('.media-item').forEach(el => {
-            el.style.transition = `opacity ${config.fadeDuration}ms ease-in-out`;
-        });
-    }
-
-    function saveConfig() {
-        config.csvUrl = document.getElementById('csv-url').value;
-        config.imageDuration = parseInt(document.getElementById('image-duration').value);
-        config.videoDuration = parseInt(document.getElementById('video-duration').value);
-        config.youtubeDuration = parseInt(document.getElementById('youtube-duration').value);
-        config.refreshInterval = parseInt(document.getElementById('refresh-interval').value);
-        config.fadeDuration = parseInt(document.getElementById('fade-duration').value);
-        
-        localStorage.setItem('signage-config', JSON.stringify(config));
-        updateConfigUI();
-        
-        showStatus('✅ Configurações salvas!');
-        closePanel();
-        
-        // Recarrega lista
-        fetchMediaList();
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // PANEL TOGGLE
-    // ═══════════════════════════════════════════════════════
-    let tapCount = 0;
-    let tapTimeout = null;
-
-    document.getElementById('logo-trigger').addEventListener('click', () => {
-        tapCount++;
-        clearTimeout(tapTimeout);
-        tapTimeout = setTimeout(() => { tapCount = 0; }, 1000);
-        
-        if (tapCount >= 6) {
-            tapCount = 0;
-            togglePanel();
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'F10') {
-            e.preventDefault();
-            togglePanel();
-        }
-    });
-
-    function togglePanel() {
-        document.getElementById('config-panel').classList.toggle('open');
-    }
-
-    function closePanel() {
-        document.getElementById('config-panel').classList.remove('open');
-    }
-
-    function showStatus(msg, duration = 3000) {
-        const status = document.getElementById('status');
-        status.textContent = msg;
-        status.classList.add('show');
-        setTimeout(() => status.classList.remove('show'), duration);
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // FETCH MEDIA LIST FROM CSV
-    // ═══════════════════════════════════════════════════════
-    async function fetchMediaList() {
+function loadConfig() {
+    const saved = localStorage.getItem('signage-config');
+    if (saved) {
         try {
-            showStatus('🔄 Atualizando lista...');
-            const response = await fetch(config.csvUrl + '&_=' + Date.now());
-            const text = await response.text();
-            
-            const lines = text.trim().split('\n');
-            if (lines.length < 2) {
-                console.error('CSV vazio');
-                return;
-            }
-            
-            // Detecta coluna (url, imagem, img, foto, link)
-            const header = lines[0].toLowerCase();
-            const columns = header.split(',').map(c => c.trim());
-            let urlIndex = columns.findIndex(c => 
-                c.includes('url') || c.includes('imagem') || 
-                c.includes('img') || c.includes('foto') || c.includes('link')
-            );
-            
-            if (urlIndex === -1) urlIndex = 0;
-            
-            const newList = [];
-            for (let i = 1; i < lines.length; i++) {
-                const cols = lines[i].split(',');
-                const url = cols[urlIndex]?.trim();
-                if (url && url.startsWith('http')) {
-                    newList.push(url);
-                }
-            }
-            
-            if (newList.length > 0) {
-                mediaList = newList;
-                console.log('✅ Lista atualizada:', mediaList.length, 'itens');
-                showStatus(`✅ ${mediaList.length} mídias carregadas`);
-                
-                if (!isPlaying) {
-                    startPlayback();
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao buscar CSV:', error);
-            showStatus('❌ Erro ao carregar lista', 5000);
-        }
+            config = { ...config, ...JSON.parse(saved) };
+        } catch (e) {}
     }
+    updateConfigUI();
+}
 
-    // ═══════════════════════════════════════════════════════
-    // DETECT MEDIA TYPE
-    // ═══════════════════════════════════════════════════════
-    function detectMediaType(url) {
-        const lower = url.toLowerCase();
-        
-        // Vídeo MP4, WEBM, etc
-        if (lower.match(/\.(mp4|webm|ogg|mov)(\?|$)/i)) {
-            return 'video';
-        }
-        
-        // YouTube
-        if (lower.includes('youtu.be') || lower.includes('youtube.com')) {
-            return 'youtube';
-        }
-        
-        // Google Drive
-        if (lower.includes('drive.google.com')) {
-            return 'drive';
-        }
-        
-        // Imagens
-        if (lower.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i)) {
-            return 'image';
-        }
-        
-        // Default: tenta imagem
-        return 'image';
+function updateConfigUI() {
+    document.getElementById('csv-url').value = config.csvUrl;
+    document.getElementById('image-duration').value = config.imageDuration;
+    document.getElementById('video-duration').value = config.videoDuration;
+    document.getElementById('youtube-duration').value = config.youtubeDuration;
+    document.getElementById('refresh-interval').value = config.refreshInterval;
+    document.getElementById('fade-duration').value = config.fadeDuration;
+}
+
+function saveConfig() {
+    config.csvUrl = document.getElementById('csv-url').value;
+    config.imageDuration = parseInt(document.getElementById('image-duration').value);
+    config.videoDuration = parseInt(document.getElementById('video-duration').value);
+    config.youtubeDuration = parseInt(document.getElementById('youtube-duration').value);
+    config.refreshInterval = parseInt(document.getElementById('refresh-interval').value);
+    config.fadeDuration = parseInt(document.getElementById('fade-duration').value);
+    
+    localStorage.setItem('signage-config', JSON.stringify(config));
+    updateConfigUI();
+    showStatus('✅ Salvo!');
+    closePanel();
+    fetchMediaList();
+}
+
+let tapCount = 0;
+let tapTimeout = null;
+
+document.getElementById('logo-trigger').addEventListener('click', () => {
+    tapCount++;
+    clearTimeout(tapTimeout);
+    tapTimeout = setTimeout(() => { tapCount = 0; }, 1000);
+    if (tapCount >= 6) {
+        tapCount = 0;
+        togglePanel();
     }
+});
 
-    // ═══════════════════════════════════════════════════════
-    // CREATE MEDIA ELEMENT
-    // ═══════════════════════════════════════════════════════
-    function createMediaElement(url, type) {
-        const div = document.createElement('div');
-        div.className = 'media-item';
-        div.style.transition = `opacity ${config.fadeDuration}ms ease-in-out`;
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'F10') {
+        e.preventDefault();
+        togglePanel();
+    }
+});
+
+function togglePanel() {
+    document.getElementById('config-panel').classList.toggle('open');
+}
+
+function closePanel() {
+    document.getElementById('config-panel').classList.remove('open');
+}
+
+function showStatus(msg, duration = 3000) {
+    const status = document.getElementById('status');
+    status.textContent = msg;
+    status.classList.add('show');
+    setTimeout(() => status.classList.remove('show'), duration);
+}
+
+async function fetchMediaList() {
+    try {
+        showStatus('🔄 Carregando...');
+        const response = await fetch(config.csvUrl + '&_=' + Date.now());
+        const text = await response.text();
         
-        if (type === 'video') {
-            const video = document.createElement('video');
-            video.src = url;
-            video.muted = true; // CRÍTICO para autoplay
-            video.autoplay = true;
-            video.playsInline = true;
-            video.preload = 'auto';
-            
-            // Se duração for 0, toca até o fim
-            if (config.videoDuration === 0) {
-                video.loop = false;
-                video.addEventListener('ended', () => {
-                    console.log('✅ Vídeo terminou, próximo item');
-                    nextMedia();
-                });
-            } else {
-                video.loop = true;
+        const lines = text.trim().split('\n');
+        if (lines.length < 2) return;
+        
+        const header = lines[0].toLowerCase();
+        const columns = header.split(',').map(c => c.trim());
+        let urlIndex = columns.findIndex(c => 
+            c.includes('url') || c.includes('imagem') || c.includes('img') || c.includes('foto') || c.includes('link')
+        );
+        
+        if (urlIndex === -1) urlIndex = 0;
+        
+        const newList = [];
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            const url = cols[urlIndex]?.trim();
+            if (url && url.startsWith('http')) {
+                newList.push(url);
             }
-            
-            // Força play quando ficar ativo
-            video.addEventListener('canplay', () => {
-                if (div.classList.contains('active')) {
-                    video.play().catch(e => console.error('Erro ao dar play:', e));
-                }
-            });
-            
-            div.appendChild(video);
-            currentVideoElement = video;
-            
-        } else if (type === 'youtube') {
-            const videoId = extractYouTubeId(url);
-            if (videoId) {
-                const iframe = document.createElement('iframe');
-                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1`;
-                iframe.allow = 'autoplay; fullscreen';
-                div.appendChild(iframe);
-            }
-            
-        } else if (type === 'drive') {
-            const driveUrl = convertDriveUrl(url);
-            const img = document.createElement('img');
-            img.src = driveUrl;
-            img.alt = 'Drive Image';
-            div.appendChild(img);
-            
+        }
+        
+        if (newList.length > 0) {
+            mediaList = newList;
+            showStatus(`✅ ${mediaList.length} mídias`);
+            if (!isPlaying) startPlayback();
+        }
+    } catch (error) {
+        showStatus('❌ Erro', 5000);
+    }
+}
+
+function detectMediaType(url) {
+    const lower = url.toLowerCase();
+    if (lower.match(/\.(mp4|webm|ogg|mov)(\?|$)/i)) return 'video';
+    if (lower.includes('youtu.be') || lower.includes('youtube.com')) return 'youtube';
+    if (lower.includes('drive.google.com')) return 'drive';
+    return 'image';
+}
+
+function createMediaElement(url, type) {
+    const div = document.createElement('div');
+    div.className = 'media-item';
+    div.style.transition = `opacity ${config.fadeDuration}ms ease-in-out`;
+    
+    if (type === 'video') {
+        const video = document.createElement('video');
+        video.src = url;
+        video.muted = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        
+        if (config.videoDuration === 0) {
+            video.loop = false;
+            video.addEventListener('ended', () => nextMedia());
         } else {
-            // Imagem normal
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = 'Media';
-            div.appendChild(img);
+            video.loop = true;
         }
         
-        return div;
-    }
-
-    function extractYouTubeId(url) {
-        const match = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&?\/]+)/);
-        return match ? match[1] : null;
-    }
-
-    function convertDriveUrl(url) {
-        const match = url.match(/\/d\/([^\/]+)/);
-        if (match) {
-            return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-        }
-        return url;
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // PLAYBACK CONTROL
-    // ═══════════════════════════════════════════════════════
-    function startPlayback() {
-        if (mediaList.length === 0) {
-            console.log('Nenhuma mídia na lista');
-            return;
-        }
-        
-        isPlaying = true;
-        currentIndex = 0;
-        showMedia(currentIndex);
-    }
-
-    function showMedia(index) {
-        if (index >= mediaList.length) index = 0;
-        
-        const url = mediaList[index];
-        const type = detectMediaType(url);
-        
-        console.log(`▶️ [${index + 1}/${mediaList.length}] ${type.toUpperCase()}: ${url}`);
-        
-        // Remove itens antigos
-        const container = document.getElementById('container');
-        const oldItems = container.querySelectorAll('.media-item');
-        oldItems.forEach(item => {
-            item.classList.remove('active');
-            // Remove vídeos antigos para liberar memória
-            setTimeout(() => {
-                if (!item.classList.contains('active')) {
-                    item.remove();
-                }
-            }, config.fadeDuration);
+        video.addEventListener('canplay', () => {
+            if (div.classList.contains('active')) {
+                video.play().catch(e => console.error('Play error:', e));
+            }
         });
         
-        // Cria novo elemento
-        const newElement = createMediaElement(url, type);
-        container.appendChild(newElement);
+        div.appendChild(video);
         
-        // Ativa após um frame (para trigger da transição)
-        setTimeout(() => {
-            newElement.classList.add('active');
-        }, 50);
-        
-        // Determina duração
-        let duration = config.imageDuration;
-        
-        if (type === 'video') {
-            duration = config.videoDuration;
-            // Se duração 0, o evento 'ended' do vídeo chamará nextMedia()
-            if (duration === 0) {
-                return; // Não agenda próximo, aguarda vídeo terminar
-            }
-        } else if (type === 'youtube') {
-            duration = config.youtubeDuration;
+    } else if (type === 'youtube') {
+        const videoId = extractYouTubeId(url);
+        if (videoId) {
+            const iframe = document.createElement('iframe');
+            iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1`;
+            iframe.allow = 'autoplay; fullscreen';
+            div.appendChild(iframe);
         }
         
-        // Agenda próximo item
-        clearTimeout(currentTimeout);
-        currentTimeout = setTimeout(() => nextMedia(), duration);
+    } else if (type === 'drive') {
+        const driveUrl = convertDriveUrl(url);
+        const img = document.createElement('img');
+        img.src = driveUrl;
+        div.appendChild(img);
+        
+    } else {
+        const img = document.createElement('img');
+        img.src = url;
+        div.appendChild(img);
     }
+    
+    return div;
+}
 
-    function nextMedia() {
-        currentIndex = (currentIndex + 1) % mediaList.length;
-        showMedia(currentIndex);
+function extractYouTubeId(url) {
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&?\/]+)/);
+    return match ? match[1] : null;
+}
+
+function convertDriveUrl(url) {
+    const match = url.match(/\/d\/([^\/]+)/);
+    if (match) {
+        return `https://drive.google.com/uc?export=view&id=${match[1]}`;
     }
+    return url;
+}
 
-    // ═══════════════════════════════════════════════════════
-    // AUTO REFRESH LIST
-    // ═══════════════════════════════════════════════════════
-    function startAutoRefresh() {
-        setInterval(() => {
-            fetchMediaList();
-        }, config.refreshInterval);
+function startPlayback() {
+    if (mediaList.length === 0) return;
+    isPlaying = true;
+    currentIndex = 0;
+    showMedia(currentIndex);
+}
+
+function showMedia(index) {
+    if (index >= mediaList.length) index = 0;
+    
+    const url = mediaList[index];
+    const type = detectMediaType(url);
+    
+    const container = document.getElementById('container');
+    const oldItems = container.querySelectorAll('.media-item');
+    oldItems.forEach(item => {
+        item.classList.remove('active');
+        setTimeout(() => {
+            if (!item.classList.contains('active')) {
+                item.remove();
+            }
+        }, config.fadeDuration);
+    });
+    
+    const newElement = createMediaElement(url, type);
+    container.appendChild(newElement);
+    
+    setTimeout(() => {
+        newElement.classList.add('active');
+    }, 50);
+    
+    let duration = config.imageDuration;
+    
+    if (type === 'video') {
+        duration = config.videoDuration;
+        if (duration === 0) return;
+    } else if (type === 'youtube') {
+        duration = config.youtubeDuration;
     }
+    
+    clearTimeout(currentTimeout);
+    currentTimeout = setTimeout(() => nextMedia(), duration);
+}
 
-    // ═══════════════════════════════════════════════════════
-    // INIT
-    // ═══════════════════════════════════════════════════════
-    loadConfig();
-    fetchMediaList();
-    startAutoRefresh();
+function nextMedia() {
+    currentIndex = (currentIndex + 1) % mediaList.length;
+    showMedia(currentIndex);
+}
+
+function startAutoRefresh() {
+    setInterval(() => fetchMediaList(), config.refreshInterval);
+}
+
+loadConfig();
+fetchMediaList();
+startAutoRefresh();
 </script>
 
 </body>
