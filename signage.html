@@ -3,18 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signage TV</title>
+    <title>Signage TV - Indoor Media</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             background: #000;
             overflow: hidden;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
         }
 
         #container {
@@ -26,441 +22,465 @@
 
         .media-item {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             opacity: 0;
             transition: opacity 0.8s ease-in-out;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+        .media-item.active { opacity: 1; z-index: 10; }
+        .media-item img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .media-item video { width: 100%; height: 100%; object-fit: contain; }
+        .media-item iframe { width: 100%; height: 100%; border: none; }
 
-        .media-item.active {
-            opacity: 1;
-            z-index: 10;
+        /* Tela de aviso (sem screen id, sem conteúdo, erro) */
+        #overlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+            z-index: 9990;
         }
-
-        .media-item img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
+        #overlay h1 { color: #00d4ff; font-size: 34px; margin-bottom: 16px; }
+        #overlay p { color: #ccc; font-size: 18px; line-height: 1.6; max-width: 700px; }
+        #overlay .code {
+            margin-top: 24px;
+            font-size: 48px;
+            font-weight: bold;
+            color: #fff;
+            letter-spacing: 2px;
         }
+        #overlay.hidden { display: none; }
 
-        .media-item video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .media-item iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
+        /* Painel de configuração */
         #config-panel {
             position: fixed;
-            top: 0;
-            right: -350px;
-            width: 350px;
-            height: 100vh;
+            top: 0; right: -420px;
+            width: 420px; height: 100vh;
             background: rgba(20, 20, 20, 0.98);
             color: #fff;
-            padding: 25px;
+            padding: 30px;
             z-index: 9999;
             transition: right 0.3s ease;
             overflow-y: auto;
             box-shadow: -5px 0 20px rgba(0,0,0,0.5);
         }
-
-        #config-panel.open {
-            right: 0;
-        }
-
+        #config-panel.open { right: 0; }
         #config-panel h2 {
-            margin-bottom: 20px;
-            color: #4CAF50;
-            font-size: 20px;
-            border-bottom: 2px solid #4CAF50;
-            padding-bottom: 8px;
+            margin-bottom: 25px;
+            color: #00d4ff;
+            font-size: 24px;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 10px;
         }
-
         #config-panel label {
             display: block;
-            margin-top: 15px;
-            margin-bottom: 5px;
-            font-size: 12px;
-            color: #aaa;
-            text-transform: uppercase;
+            margin-top: 20px; margin-bottom: 8px;
+            font-size: 13px; color: #aaa;
+            text-transform: uppercase; letter-spacing: 0.5px;
         }
-
-        #config-panel input[type="text"],
-        #config-panel input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            background: #1a1a1a;
-            border: 1px solid #333;
-            color: #fff;
-            border-radius: 4px;
-            font-size: 13px;
+        #config-panel input[type="text"] {
+            width: 100%; padding: 12px;
+            background: #1a1a1a; border: 1px solid #333;
+            color: #fff; border-radius: 4px; font-size: 14px;
         }
-
-        #config-panel input:focus {
-            outline: none;
-            border-color: #4CAF50;
-        }
-
+        #config-panel input:focus { outline: none; border-color: #00d4ff; }
         #config-panel button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 20px;
-            background: #4CAF50;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
+            width: 100%; padding: 14px; margin-top: 25px;
+            background: #00d4ff; color: #000; border: none;
+            border-radius: 4px; font-size: 16px; font-weight: bold;
+            cursor: pointer; transition: background 0.2s;
         }
-
-        #config-panel button:hover {
-            background: #45a049;
-        }
-
+        #config-panel button:hover { background: #00b8e6; }
         #config-panel .info {
-            margin-top: 20px;
-            padding: 12px;
-            background: rgba(76, 175, 80, 0.1);
-            border-left: 3px solid #4CAF50;
-            font-size: 11px;
-            line-height: 1.5;
-            color: #ccc;
+            margin-top: 30px; padding: 15px;
+            background: rgba(0, 212, 255, 0.1);
+            border-left: 3px solid #00d4ff;
+            font-size: 12px; line-height: 1.6; color: #ccc;
         }
 
         #logo-trigger {
-            position: fixed;
-            bottom: 15px;
-            right: 15px;
-            width: 50px;
-            height: 50px;
-            background: rgba(76, 175, 80, 0.3);
+            position: fixed; bottom: 20px; right: 20px;
+            width: 60px; height: 60px;
+            background: rgba(0, 212, 255, 0.2);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 9998;
-            color: #4CAF50;
-            font-size: 20px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 9998;
+            transition: all 0.3s; color: #00d4ff;
+            font-size: 24px; font-weight: bold;
         }
+        #logo-trigger:hover { background: rgba(0, 212, 255, 0.4); transform: scale(1.1); }
 
         #status {
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            padding: 8px 15px;
+            position: fixed; top: 20px; left: 20px;
+            padding: 10px 20px;
             background: rgba(0, 0, 0, 0.7);
-            color: #4CAF50;
-            border-radius: 15px;
-            font-size: 11px;
-            z-index: 9997;
-            display: none;
+            color: #00d4ff; border-radius: 20px;
+            font-size: 12px; z-index: 9997; display: none;
         }
-
-        #status.show {
-            display: block;
-        }
+        #status.show { display: block; }
     </style>
 </head>
 <body>
 
 <div id="container"></div>
+
+<div id="overlay">
+    <h1>📺 Signage TV</h1>
+    <p id="overlay-msg">Conectando ao servidor...</p>
+    <div class="code" id="overlay-code"></div>
+</div>
+
 <div id="status">Carregando...</div>
-<div id="logo-trigger">⚙️</div>
+<div id="logo-trigger" title="Configurações (F10 ou 6 toques)">⚙️</div>
 
 <div id="config-panel">
-    <h2>⚙️ Configurações</h2>
-    
-    <label>URL do CSV</label>
-    <input type="text" id="csv-url">
-    
+    <h2>⚙️ Configurações da TV</h2>
+
+    <label>ID desta Tela / Monitor</label>
+    <input type="text" id="screen-id" placeholder="ex: recepcao">
+
     <label>Duração Imagem (ms)</label>
-    <input type="number" id="image-duration" value="10000">
-    
-    <label>Duração Vídeo (ms) - 0 = até o fim</label>
-    <input type="number" id="video-duration" value="0">
-    
+    <input type="text" id="image-duration" value="10000">
+
+    <label>Duração Vídeo MP4 (ms) — 0 = até o fim</label>
+    <input type="text" id="video-duration" value="0">
+
     <label>Duração YouTube (ms)</label>
-    <input type="number" id="youtube-duration" value="45000">
-    
-    <label>Atualizar Lista (ms)</label>
-    <input type="number" id="refresh-interval" value="60000">
-    
+    <input type="text" id="youtube-duration" value="45000">
+
     <label>Fade (ms)</label>
-    <input type="number" id="fade-duration" value="800">
-    
+    <input type="text" id="fade-duration" value="800">
+
     <button onclick="saveConfig()">💾 Salvar</button>
-    
+
     <div class="info">
-        <strong>Formatos:</strong><br>
-        • Imagens: JPG, PNG, GIF<br>
-        • Vídeos: MP4, WEBM<br>
-        • YouTube: youtu.be/ID<br><br>
-        <strong>F10</strong> ou <strong>6 toques</strong>
+        <strong>Como funciona:</strong><br>
+        1. Informe o <strong>ID da Tela</strong> (o mesmo cadastrado no painel).<br>
+        2. O conteúdo é gerenciado pelo painel web — esta TV atualiza sozinha em tempo real.<br>
+        3. As durações aqui são padrão; o painel pode sobrescrever por tela.
     </div>
 </div>
 
+<!-- Firebase SDK (compat = máxima compatibilidade com WebView de TV) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <script>
-let config = {
-    csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQV4wEUWYV3BilpIpsM63UD5dFfnKxlmEOE30SiHDvPLX80ni-gHh91Ssq525gh_Rb_G732tKPoLEJi/pub?gid=0&single=true&output=csv',
-    imageDuration: 10000,
-    videoDuration: 0,
-    youtubeDuration: 45000,
-    refreshInterval: 60000,
-    fadeDuration: 800
-};
+    // ═══════════════════════════════════════════════════════
+    //  FIREBASE_CONFIG — COLE OS MESMOS VALORES DO firebase-config.js
+    // ═══════════════════════════════════════════════════════
+    const FIREBASE_CONFIG = {
+        apiKey: "AIzaSyDuV3VzusfFVhmUQRPxGpsKWRBvYGyU41c",
+        authDomain: "signage-lv.firebaseapp.com",
+        projectId: "signage-lv",
+        storageBucket: "signage-lv.firebasestorage.app",
+        messagingSenderId: "1070359013288",
+        appId: "1:1070359013288:web:7ec3105a591a56fd96df9d"
+    };
 
-let mediaList = [];
-let currentIndex = 0;
-let isPlaying = false;
-let currentTimeout = null;
+    // ═══════════════════════════════════════════════════════
+    //  CONFIG & STATE
+    // ═══════════════════════════════════════════════════════
+    let config = {
+        screenId: '',
+        imageDuration: 10000,
+        videoDuration: 0,
+        youtubeDuration: 45000,
+        fadeDuration: 800
+    };
 
-function loadConfig() {
-    const saved = localStorage.getItem('signage-config');
-    if (saved) {
-        try {
-            config = { ...config, ...JSON.parse(saved) };
-        } catch (e) {}
+    let db = null;
+    let mediaList = [];
+    let currentIndex = 0;
+    let isPlaying = false;
+    let currentTimeout = null;
+    let screenUnsub = null;
+
+    // ═══════════════════════════════════════════════════════
+    //  OVERLAY / STATUS
+    // ═══════════════════════════════════════════════════════
+    function showOverlay(msg, code) {
+        document.getElementById('overlay-msg').textContent = msg || '';
+        document.getElementById('overlay-code').textContent = code || '';
+        document.getElementById('overlay').classList.remove('hidden');
     }
-    updateConfigUI();
-}
-
-function updateConfigUI() {
-    document.getElementById('csv-url').value = config.csvUrl;
-    document.getElementById('image-duration').value = config.imageDuration;
-    document.getElementById('video-duration').value = config.videoDuration;
-    document.getElementById('youtube-duration').value = config.youtubeDuration;
-    document.getElementById('refresh-interval').value = config.refreshInterval;
-    document.getElementById('fade-duration').value = config.fadeDuration;
-}
-
-function saveConfig() {
-    config.csvUrl = document.getElementById('csv-url').value;
-    config.imageDuration = parseInt(document.getElementById('image-duration').value);
-    config.videoDuration = parseInt(document.getElementById('video-duration').value);
-    config.youtubeDuration = parseInt(document.getElementById('youtube-duration').value);
-    config.refreshInterval = parseInt(document.getElementById('refresh-interval').value);
-    config.fadeDuration = parseInt(document.getElementById('fade-duration').value);
-    
-    localStorage.setItem('signage-config', JSON.stringify(config));
-    updateConfigUI();
-    showStatus('✅ Salvo!');
-    closePanel();
-    fetchMediaList();
-}
-
-let tapCount = 0;
-let tapTimeout = null;
-
-document.getElementById('logo-trigger').addEventListener('click', () => {
-    tapCount++;
-    clearTimeout(tapTimeout);
-    tapTimeout = setTimeout(() => { tapCount = 0; }, 1000);
-    if (tapCount >= 6) {
-        tapCount = 0;
-        togglePanel();
+    function hideOverlay() {
+        document.getElementById('overlay').classList.add('hidden');
     }
-});
-
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'F10') {
-        e.preventDefault();
-        togglePanel();
+    function showStatus(msg, duration = 3000) {
+        const status = document.getElementById('status');
+        status.textContent = msg;
+        status.classList.add('show');
+        setTimeout(() => status.classList.remove('show'), duration);
     }
-});
 
-function togglePanel() {
-    document.getElementById('config-panel').classList.toggle('open');
-}
-
-function closePanel() {
-    document.getElementById('config-panel').classList.remove('open');
-}
-
-function showStatus(msg, duration = 3000) {
-    const status = document.getElementById('status');
-    status.textContent = msg;
-    status.classList.add('show');
-    setTimeout(() => status.classList.remove('show'), duration);
-}
-
-async function fetchMediaList() {
-    try {
-        showStatus('🔄 Carregando...');
-        const response = await fetch(config.csvUrl + '&_=' + Date.now());
-        const text = await response.text();
-        
-        const lines = text.trim().split('\n');
-        if (lines.length < 2) return;
-        
-        const header = lines[0].toLowerCase();
-        const columns = header.split(',').map(c => c.trim());
-        let urlIndex = columns.findIndex(c => 
-            c.includes('url') || c.includes('imagem') || c.includes('img') || c.includes('foto') || c.includes('link')
-        );
-        
-        if (urlIndex === -1) urlIndex = 0;
-        
-        const newList = [];
-        for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(',');
-            const url = cols[urlIndex]?.trim();
-            if (url && url.startsWith('http')) {
-                newList.push(url);
-            }
+    // ═══════════════════════════════════════════════════════
+    //  CONFIG LOCAL (por dispositivo) — localStorage
+    // ═══════════════════════════════════════════════════════
+    function loadConfig() {
+        const saved = localStorage.getItem('signage-config');
+        if (saved) {
+            try { config = { ...config, ...JSON.parse(saved) }; }
+            catch (e) { console.error('Erro ao carregar config:', e); }
         }
-        
-        if (newList.length > 0) {
-            mediaList = newList;
-            showStatus(`✅ ${mediaList.length} mídias`);
-            if (!isPlaying) startPlayback();
-        }
-    } catch (error) {
-        showStatus('❌ Erro', 5000);
+        updateConfigUI();
     }
-}
-
-function detectMediaType(url) {
-    const lower = url.toLowerCase();
-    if (lower.match(/\.(mp4|webm|ogg|mov)(\?|$)/i)) return 'video';
-    if (lower.includes('youtu.be') || lower.includes('youtube.com')) return 'youtube';
-    if (lower.includes('drive.google.com')) return 'drive';
-    return 'image';
-}
-
-function createMediaElement(url, type) {
-    const div = document.createElement('div');
-    div.className = 'media-item';
-    div.style.transition = `opacity ${config.fadeDuration}ms ease-in-out`;
-    
-    if (type === 'video') {
-        const video = document.createElement('video');
-        video.src = url;
-        video.muted = true;
-        video.autoplay = true;
-        video.playsInline = true;
-        video.preload = 'auto';
-        
-        if (config.videoDuration === 0) {
-            video.loop = false;
-            video.addEventListener('ended', () => nextMedia());
-        } else {
-            video.loop = true;
-        }
-        
-        video.addEventListener('canplay', () => {
-            if (div.classList.contains('active')) {
-                video.play().catch(e => console.error('Play error:', e));
-            }
-        });
-        
-        div.appendChild(video);
-        
-    } else if (type === 'youtube') {
-        const videoId = extractYouTubeId(url);
-        if (videoId) {
-            const iframe = document.createElement('iframe');
-            iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1`;
-            iframe.allow = 'autoplay; fullscreen';
-            div.appendChild(iframe);
-        }
-        
-    } else if (type === 'drive') {
-        const driveUrl = convertDriveUrl(url);
-        const img = document.createElement('img');
-        img.src = driveUrl;
-        div.appendChild(img);
-        
-    } else {
-        const img = document.createElement('img');
-        img.src = url;
-        div.appendChild(img);
+    function updateConfigUI() {
+        document.getElementById('screen-id').value = config.screenId || '';
+        document.getElementById('image-duration').value = config.imageDuration;
+        document.getElementById('video-duration').value = config.videoDuration;
+        document.getElementById('youtube-duration').value = config.youtubeDuration;
+        document.getElementById('fade-duration').value = config.fadeDuration;
     }
-    
-    return div;
-}
+    function saveConfig() {
+        config.screenId = document.getElementById('screen-id').value.trim();
+        config.imageDuration = parseInt(document.getElementById('image-duration').value) || 10000;
+        config.videoDuration = parseInt(document.getElementById('video-duration').value) || 0;
+        config.youtubeDuration = parseInt(document.getElementById('youtube-duration').value) || 45000;
+        config.fadeDuration = parseInt(document.getElementById('fade-duration').value) || 800;
 
-function extractYouTubeId(url) {
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&?\/]+)/);
-    return match ? match[1] : null;
-}
-
-function convertDriveUrl(url) {
-    const match = url.match(/\/d\/([^\/]+)/);
-    if (match) {
-        return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+        localStorage.setItem('signage-config', JSON.stringify(config));
+        updateConfigUI();
+        showStatus('✅ Configurações salvas!');
+        closePanel();
+        subscribeToScreen();
     }
-    return url;
-}
 
-function startPlayback() {
-    if (mediaList.length === 0) return;
-    isPlaying = true;
-    currentIndex = 0;
-    showMedia(currentIndex);
-}
-
-function showMedia(index) {
-    if (index >= mediaList.length) index = 0;
-    
-    const url = mediaList[index];
-    const type = detectMediaType(url);
-    
-    const container = document.getElementById('container');
-    const oldItems = container.querySelectorAll('.media-item');
-    oldItems.forEach(item => {
-        item.classList.remove('active');
-        setTimeout(() => {
-            if (!item.classList.contains('active')) {
-                item.remove();
-            }
-        }, config.fadeDuration);
+    // ═══════════════════════════════════════════════════════
+    //  PAINEL (F10 ou 6 toques)
+    // ═══════════════════════════════════════════════════════
+    let tapCount = 0, tapTimeout = null;
+    document.getElementById('logo-trigger').addEventListener('click', () => {
+        tapCount++;
+        clearTimeout(tapTimeout);
+        tapTimeout = setTimeout(() => { tapCount = 0; }, 1000);
+        if (tapCount >= 6) { tapCount = 0; togglePanel(); }
     });
-    
-    const newElement = createMediaElement(url, type);
-    container.appendChild(newElement);
-    
-    setTimeout(() => {
-        newElement.classList.add('active');
-    }, 50);
-    
-    let duration = config.imageDuration;
-    
-    if (type === 'video') {
-        duration = config.videoDuration;
-        if (duration === 0) return;
-    } else if (type === 'youtube') {
-        duration = config.youtubeDuration;
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F10') { e.preventDefault(); togglePanel(); }
+    });
+    function togglePanel() { document.getElementById('config-panel').classList.toggle('open'); }
+    function closePanel() { document.getElementById('config-panel').classList.remove('open'); }
+
+    // ═══════════════════════════════════════════════════════
+    //  FIREBASE INIT + AUTH ANÔNIMO
+    // ═══════════════════════════════════════════════════════
+    function initFirebase() {
+        try {
+            firebase.initializeApp(FIREBASE_CONFIG);
+            db = firebase.firestore();
+            firebase.auth().signInAnonymously()
+                .then(() => {
+                    console.log('✅ Autenticado (anônimo)');
+                    subscribeToScreen();
+                })
+                .catch((err) => {
+                    console.error('Erro de autenticação:', err);
+                    showOverlay('Erro de conexão com o servidor. Verifique a internet e a configuração do Firebase.');
+                });
+        } catch (e) {
+            console.error('Erro ao iniciar Firebase:', e);
+            showOverlay('Firebase não configurado. Preencha FIREBASE_CONFIG no signage.html.');
+        }
     }
-    
-    clearTimeout(currentTimeout);
-    currentTimeout = setTimeout(() => nextMedia(), duration);
-}
 
-function nextMedia() {
-    currentIndex = (currentIndex + 1) % mediaList.length;
-    showMedia(currentIndex);
-}
+    // ═══════════════════════════════════════════════════════
+    //  OUVIR A TELA NO FIRESTORE (tempo real)
+    // ═══════════════════════════════════════════════════════
+    function subscribeToScreen() {
+        if (screenUnsub) { screenUnsub(); screenUnsub = null; }
 
-function startAutoRefresh() {
-    setInterval(() => fetchMediaList(), config.refreshInterval);
-}
+        if (!config.screenId) {
+            showOverlay('Esta TV ainda não tem um ID de Tela.',
+                        'Abra o painel (F10) e informe o ID');
+            return;
+        }
+        if (!db) return;
 
-loadConfig();
-fetchMediaList();
-startAutoRefresh();
+        showStatus('🔄 Conectando à tela "' + config.screenId + '"...');
+
+        screenUnsub = db.collection('screens').doc(config.screenId)
+            .onSnapshot((doc) => {
+                if (!doc.exists) {
+                    showOverlay('Tela "' + config.screenId + '" não encontrada no painel.',
+                                'Cadastre esta tela no painel');
+                    stopPlayback();
+                    return;
+                }
+                const data = doc.data() || {};
+
+                // Config por tela sobrescreve o padrão local (se existir)
+                if (data.imageDuration != null) config.imageDuration = data.imageDuration;
+                if (data.videoDuration != null) config.videoDuration = data.videoDuration;
+                if (data.youtubeDuration != null) config.youtubeDuration = data.youtubeDuration;
+                if (data.fadeDuration != null) config.fadeDuration = data.fadeDuration;
+
+                // Monta a lista de mídias
+                const items = Array.isArray(data.items) ? data.items : [];
+                const newList = items
+                    .map(it => (typeof it === 'string' ? it : (it && it.url)))
+                    .filter(u => typeof u === 'string' && u.startsWith('http'));
+
+                mediaList = newList;
+                console.log('✅ Playlist atualizada:', mediaList.length, 'itens');
+
+                if (mediaList.length === 0) {
+                    showOverlay('Nenhuma mídia atribuída a "' + config.screenId + '".',
+                                'Adicione mídias no painel');
+                    stopPlayback();
+                    return;
+                }
+
+                hideOverlay();
+                showStatus('✅ ' + mediaList.length + ' mídias');
+                restartPlayback();
+            }, (err) => {
+                console.error('Erro no Firestore:', err);
+                showOverlay('Erro ao buscar o conteúdo. Verifique internet e permissões.');
+            });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  DETECTA TIPO DE MÍDIA
+    // ═══════════════════════════════════════════════════════
+    function detectMediaType(url) {
+        const lower = url.toLowerCase();
+        if (lower.match(/\.(mp4|webm|ogg|mov)(\?|$)/i)) return 'video';
+        if (lower.includes('youtu.be') || lower.includes('youtube.com')) return 'youtube';
+        if (lower.includes('drive.google.com')) return 'drive';
+        if (lower.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i)) return 'image';
+        // URLs do Firebase Storage não têm extensão clara; tenta pela query
+        if (lower.includes('alt=media')) {
+            if (lower.includes('.mp4') || lower.includes('.webm') || lower.includes('.mov')) return 'video';
+        }
+        return 'image';
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  CRIA ELEMENTO DE MÍDIA
+    // ═══════════════════════════════════════════════════════
+    function createMediaElement(url, type) {
+        const div = document.createElement('div');
+        div.className = 'media-item';
+        div.style.transition = `opacity ${config.fadeDuration}ms ease-in-out`;
+
+        if (type === 'video') {
+            const video = document.createElement('video');
+            video.src = url;
+            video.muted = true;
+            video.autoplay = true;
+            video.playsInline = true;
+            video.preload = 'auto';
+            if (config.videoDuration === 0) {
+                video.loop = false;
+                video.addEventListener('ended', () => nextMedia());
+            } else {
+                video.loop = true;
+            }
+            video.addEventListener('canplay', () => {
+                if (div.classList.contains('active')) {
+                    video.play().catch(e => console.error('Erro play:', e));
+                }
+            });
+            div.appendChild(video);
+
+        } else if (type === 'youtube') {
+            const videoId = extractYouTubeId(url);
+            if (videoId) {
+                const iframe = document.createElement('iframe');
+                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1`;
+                iframe.allow = 'autoplay; fullscreen';
+                div.appendChild(iframe);
+            }
+
+        } else if (type === 'drive') {
+            const img = document.createElement('img');
+            img.src = convertDriveUrl(url);
+            div.appendChild(img);
+
+        } else {
+            const img = document.createElement('img');
+            img.src = url;
+            div.appendChild(img);
+        }
+        return div;
+    }
+
+    function extractYouTubeId(url) {
+        const match = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&?\/]+)/);
+        return match ? match[1] : null;
+    }
+    function convertDriveUrl(url) {
+        const match = url.match(/\/d\/([^\/]+)/);
+        return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  REPRODUÇÃO
+    // ═══════════════════════════════════════════════════════
+    function restartPlayback() {
+        clearTimeout(currentTimeout);
+        if (currentIndex >= mediaList.length) currentIndex = 0;
+        isPlaying = true;
+        showMedia(currentIndex);
+    }
+    function stopPlayback() {
+        clearTimeout(currentTimeout);
+        isPlaying = false;
+        const container = document.getElementById('container');
+        container.querySelectorAll('.media-item').forEach(i => i.remove());
+    }
+
+    function showMedia(index) {
+        if (index >= mediaList.length) index = 0;
+        const url = mediaList[index];
+        const type = detectMediaType(url);
+        console.log(`▶️ [${index + 1}/${mediaList.length}] ${type}: ${url}`);
+
+        const container = document.getElementById('container');
+        container.querySelectorAll('.media-item').forEach(item => {
+            item.classList.remove('active');
+            setTimeout(() => {
+                if (!item.classList.contains('active')) item.remove();
+            }, config.fadeDuration);
+        });
+
+        const newElement = createMediaElement(url, type);
+        container.appendChild(newElement);
+        setTimeout(() => newElement.classList.add('active'), 50);
+
+        let duration = config.imageDuration;
+        if (type === 'video') {
+            duration = config.videoDuration;
+            if (duration === 0) return; // aguarda 'ended'
+        } else if (type === 'youtube') {
+            duration = config.youtubeDuration;
+        }
+        clearTimeout(currentTimeout);
+        currentTimeout = setTimeout(() => nextMedia(), duration);
+    }
+
+    function nextMedia() {
+        if (mediaList.length === 0) return;
+        currentIndex = (currentIndex + 1) % mediaList.length;
+        showMedia(currentIndex);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  INIT
+    // ═══════════════════════════════════════════════════════
+    loadConfig();
+    initFirebase();
 </script>
 
 </body>
