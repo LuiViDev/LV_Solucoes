@@ -243,7 +243,7 @@
         document.getElementById('fade-duration').value = config.fadeDuration;
     }
     function saveConfig() {
-        config.screenId = document.getElementById('screen-id').value.trim();
+        config.screenId = document.getElementById('screen-id').value.trim().toLowerCase();
         config.imageDuration = parseInt(document.getElementById('image-duration').value) || 10000;
         config.videoDuration = parseInt(document.getElementById('video-duration').value) || 0;
         config.youtubeDuration = parseInt(document.getElementById('youtube-duration').value) || 45000;
@@ -299,6 +299,9 @@
     // ═══════════════════════════════════════════════════════
     function subscribeToScreen() {
         if (screenUnsub) { screenUnsub(); screenUnsub = null; }
+
+        // Normaliza o ID: minúsculo e sem espaços (evita "Aiwa" x "aiwa")
+        config.screenId = (config.screenId || '').trim().toLowerCase();
 
         if (!config.screenId) {
             showOverlay('Esta TV ainda não tem um ID de Tela.',
