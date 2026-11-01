@@ -107,17 +107,19 @@
             font-size: 12px; line-height: 1.6; color: #ccc;
         }
 
+        /* Gatilho invisível no canto: não aparece sobre o conteúdo,
+           mas um toque 6x no canto (em telas de toque) ainda abre o painel.
+           Pelo controle/teclado use F10. */
         #logo-trigger {
-            position: fixed; bottom: 20px; right: 20px;
-            width: 60px; height: 60px;
-            background: rgba(0, 212, 255, 0.2);
-            border-radius: 50%;
+            position: fixed; bottom: 0; right: 0;
+            width: 80px; height: 80px;
+            background: transparent;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; z-index: 9998;
-            transition: all 0.3s; color: #00d4ff;
-            font-size: 24px; font-weight: bold;
+            color: transparent;
+            font-size: 1px;
+            opacity: 0;
         }
-        #logo-trigger:hover { background: rgba(0, 212, 255, 0.4); transform: scale(1.1); }
 
         #status {
             position: fixed; top: 20px; left: 20px;
