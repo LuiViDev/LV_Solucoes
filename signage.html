@@ -394,29 +394,39 @@
     // ═══════════════════════════════════════════════════════
     //  CRIA ELEMENTO DE MÍDIA
     // ═══════════════════════════════════════════════════════
-    function createMediaElement(url, type) {
+    function extractYouTubeId(url) {
+        const match = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&?\/]+)/);
+        return match ? match[1] : null;
+    }
+    function convertDriveUrl(url) {
+        const match = url.match(/\/d\/([^\/]+)/);
+        return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
+    }
+    // Entrega o vídeo do Cloudinary otimizado (menos travamento e menos banda)
+    function optimizeVideoUrl(url) {
+        if (url.indexOf('res.cloudinary.com') !== -1 &&
+            url.indexOf('/upload/') !== -1 &&
+            url.indexOf('q_auto') === -1) {
+            return url.replace('/upload/', '/upload/q_auto/');
+        }
+        return url;
+    }
+
+    function buildMedia(url, type) {
         const div = document.createElement('div');
         div.className = 'media-item';
         div.style.transition = `opacity ${config.fadeDuration}ms ease-in-out`;
+        div.style.opacity = '0';
 
         if (type === 'video') {
             const video = document.createElement('video');
-            video.src = url;
+            video.src = optimizeVideoUrl(url);
             video.muted = true;
-            video.autoplay = true;
             video.playsInline = true;
-            video.preload = 'auto';
-            if (config.videoDuration === 0) {
-                video.loop = false;
-                video.addEventListener('ended', () => nextMedia());
-            } else {
-                video.loop = true;
-            }
-            video.addEventListener('canplay', () => {
-                if (div.classList.contains('active')) {
-                    video.play().catch(e => console.error('Erro play:', e));
-                }
-            });
+            video.autoplay = false;   // só toca quando ficar ativo
+            video.preload = 'auto';   // já começa a bufferizar (pré-carrega)
+            video.load();
+            div._video = video;
             div.appendChild(video);
 
         } else if (type === 'youtube') {
@@ -427,12 +437,10 @@
                 iframe.allow = 'autoplay; fullscreen';
                 div.appendChild(iframe);
             }
-
         } else if (type === 'drive') {
             const img = document.createElement('img');
             img.src = convertDriveUrl(url);
             div.appendChild(img);
-
         } else {
             const img = document.createElement('img');
             img.src = url;
@@ -441,64 +449,101 @@
         return div;
     }
 
-    function extractYouTubeId(url) {
-        const match = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&?\/]+)/);
-        return match ? match[1] : null;
-    }
-    function convertDriveUrl(url) {
-        const match = url.match(/\/d\/([^\/]+)/);
-        return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
+    // ═══════════════════════════════════════════════════════
+    //  REPRODUÇÃO (pré-carrega o próximo pra não travar na troca)
+    // ═══════════════════════════════════════════════════════
+    let currentItem = null;   // { el, type, index }
+    let preloadItem = null;   // { el, type, index }
+
+    function makeItem(index) {
+        const url = mediaList[index];
+        const type = detectMediaType(url);
+        const el = buildMedia(url, type);
+        document.getElementById('container').appendChild(el);
+        return { el: el, type: type, index: index };
     }
 
-    // ═══════════════════════════════════════════════════════
-    //  REPRODUÇÃO
-    // ═══════════════════════════════════════════════════════
+    function preloadNext() {
+        if (mediaList.length < 2) { preloadItem = null; return; }
+        const nextIdx = (currentIndex + 1) % mediaList.length;
+        preloadItem = makeItem(nextIdx); // fica invisível, só bufferizando
+    }
+
     function restartPlayback() {
         clearTimeout(currentTimeout);
+        const c = document.getElementById('container');
+        c.querySelectorAll('.media-item').forEach(i => i.remove());
+        currentItem = null; preloadItem = null;
+        if (mediaList.length === 0) return;
         if (currentIndex >= mediaList.length) currentIndex = 0;
         isPlaying = true;
-        showMedia(currentIndex);
+        showCurrent();
     }
+
     function stopPlayback() {
         clearTimeout(currentTimeout);
         isPlaying = false;
-        const container = document.getElementById('container');
-        container.querySelectorAll('.media-item').forEach(i => i.remove());
+        currentItem = null; preloadItem = null;
+        document.getElementById('container').querySelectorAll('.media-item').forEach(i => i.remove());
     }
 
-    function showMedia(index) {
-        if (index >= mediaList.length) index = 0;
-        const url = mediaList[index];
-        const type = detectMediaType(url);
-        console.log(`▶️ [${index + 1}/${mediaList.length}] ${type}: ${url}`);
-
-        const container = document.getElementById('container');
-        container.querySelectorAll('.media-item').forEach(item => {
-            item.classList.remove('active');
-            setTimeout(() => {
-                if (!item.classList.contains('active')) item.remove();
-            }, config.fadeDuration);
-        });
-
-        const newElement = createMediaElement(url, type);
-        container.appendChild(newElement);
-        setTimeout(() => newElement.classList.add('active'), 50);
-
-        let duration = config.imageDuration;
-        if (type === 'video') {
-            duration = config.videoDuration;
-            if (duration === 0) return; // aguarda 'ended'
-        } else if (type === 'youtube') {
-            duration = config.youtubeDuration;
+    function showCurrent() {
+        let item;
+        if (preloadItem && preloadItem.index === currentIndex) {
+            item = preloadItem; preloadItem = null;        // já está bufferizado
+        } else {
+            if (preloadItem) { try { preloadItem.el.remove(); } catch (e) {} preloadItem = null; }
+            item = makeItem(currentIndex);
         }
+
+        const prev = currentItem;
+        currentItem = item;
+        console.log(`▶️ [${currentIndex + 1}/${mediaList.length}] ${item.type}`);
+
+        // fade-in
+        requestAnimationFrame(() => { item.el.style.opacity = '1'; item.el.classList.add('active'); });
+
+        // vídeo: toca do início
+        if (item.type === 'video' && item.el._video) {
+            const v = item.el._video;
+            try { v.currentTime = 0; } catch (e) {}
+            const pr = v.play();
+            if (pr && pr.catch) pr.catch(() => {});
+        }
+
+        // remove o anterior depois do fade (e libera memória do vídeo)
+        if (prev) {
+            prev.el.style.opacity = '0';
+            prev.el.classList.remove('active');
+            const pv = prev.el._video;
+            setTimeout(() => {
+                try { if (pv) { pv.pause(); pv.removeAttribute('src'); pv.load(); } } catch (e) {}
+                try { prev.el.remove(); } catch (e) {}
+            }, config.fadeDuration + 150);
+        }
+
+        // já pré-carrega o próximo item
+        preloadNext();
+
+        // agenda a troca
         clearTimeout(currentTimeout);
-        currentTimeout = setTimeout(() => nextMedia(), duration);
+        if (item.type === 'video') {
+            if (config.videoDuration === 0) {
+                if (item.el._video) item.el._video.onended = () => advance(); // toca até o fim
+            } else {
+                currentTimeout = setTimeout(advance, config.videoDuration);
+            }
+        } else if (item.type === 'youtube') {
+            currentTimeout = setTimeout(advance, config.youtubeDuration);
+        } else {
+            currentTimeout = setTimeout(advance, config.imageDuration);
+        }
     }
 
-    function nextMedia() {
+    function advance() {
         if (mediaList.length === 0) return;
         currentIndex = (currentIndex + 1) % mediaList.length;
-        showMedia(currentIndex);
+        showCurrent();
     }
 
     // ═══════════════════════════════════════════════════════
