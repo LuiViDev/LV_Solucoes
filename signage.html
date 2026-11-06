@@ -420,7 +420,7 @@
 
         if (type === 'video') {
             const video = document.createElement('video');
-            video.src = optimizeVideoUrl(url);
+            video.src = url;          // URL original (sem transformação que atrase o carregamento)
             video.muted = true;
             video.playsInline = true;
             video.autoplay = false;   // só toca quando ficar ativo
@@ -487,12 +487,36 @@
         document.getElementById('container').querySelectorAll('.media-item').forEach(i => i.remove());
     }
 
+    // Avança só uma vez por item (se um vídeo falhar/travar, pula sem duplicar)
+    function advanceFrom(item) {
+        if (!item || item._done) return;
+        item._done = true;
+        if (item._wd) { clearInterval(item._wd); item._wd = null; }
+        advance();
+    }
+
+    // Vigia o vídeo: se não iniciar (15s) ou travar no meio (~10s parado), pula
+    function watchVideo(item, v) {
+        let last = -1, stalls = 0, waited = 0;
+        if (item._wd) clearInterval(item._wd);
+        item._wd = setInterval(() => {
+            if (item._done) { clearInterval(item._wd); item._wd = null; return; }
+            waited++;
+            if (v.currentTime <= 0.05) {                 // ainda não começou a tocar
+                if (waited >= 15) { console.warn('Vídeo não iniciou — pulando'); advanceFrom(item); }
+                return;
+            }
+            if (Math.abs(v.currentTime - last) < 0.05) { stalls++; } else { stalls = 0; last = v.currentTime; }
+            if (stalls >= 10) { console.warn('Vídeo travado — pulando'); advanceFrom(item); }
+        }, 1000);
+    }
+
     function showCurrent() {
         let item;
         if (preloadItem && preloadItem.index === currentIndex) {
             item = preloadItem; preloadItem = null;        // já está bufferizado
         } else {
-            if (preloadItem) { try { preloadItem.el.remove(); } catch (e) {} preloadItem = null; }
+            if (preloadItem) { try { if (preloadItem._wd) clearInterval(preloadItem._wd); preloadItem.el.remove(); } catch (e) {} preloadItem = null; }
             item = makeItem(currentIndex);
         }
 
@@ -503,16 +527,29 @@
         // fade-in
         requestAnimationFrame(() => { item.el.style.opacity = '1'; item.el.classList.add('active'); });
 
-        // vídeo: toca do início
+        // agenda a troca (com segurança contra travamento)
+        clearTimeout(currentTimeout);
         if (item.type === 'video' && item.el._video) {
             const v = item.el._video;
             try { v.currentTime = 0; } catch (e) {}
+            v.onended = () => advanceFrom(item);
+            v.onerror = () => { console.warn('Erro no vídeo — pulando'); advanceFrom(item); };
             const pr = v.play();
             if (pr && pr.catch) pr.catch(() => {});
+            if (config.videoDuration === 0) {
+                watchVideo(item, v);                       // nunca trava: pula se falhar
+            } else {
+                currentTimeout = setTimeout(() => advanceFrom(item), config.videoDuration);
+            }
+        } else if (item.type === 'youtube') {
+            currentTimeout = setTimeout(() => advanceFrom(item), config.youtubeDuration);
+        } else {
+            currentTimeout = setTimeout(() => advanceFrom(item), config.imageDuration);
         }
 
         // remove o anterior depois do fade (e libera memória do vídeo)
         if (prev) {
+            if (prev._wd) { clearInterval(prev._wd); prev._wd = null; }
             prev.el.style.opacity = '0';
             prev.el.classList.remove('active');
             const pv = prev.el._video;
@@ -524,20 +561,6 @@
 
         // já pré-carrega o próximo item
         preloadNext();
-
-        // agenda a troca
-        clearTimeout(currentTimeout);
-        if (item.type === 'video') {
-            if (config.videoDuration === 0) {
-                if (item.el._video) item.el._video.onended = () => advance(); // toca até o fim
-            } else {
-                currentTimeout = setTimeout(advance, config.videoDuration);
-            }
-        } else if (item.type === 'youtube') {
-            currentTimeout = setTimeout(advance, config.youtubeDuration);
-        } else {
-            currentTimeout = setTimeout(advance, config.imageDuration);
-        }
     }
 
     function advance() {
