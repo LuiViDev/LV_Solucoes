@@ -142,6 +142,36 @@
         #iw-date { font-size: 10px; color: #e3e8ef; margin-top: 2px; text-transform: capitalize; }
         #iw-weather { font-size: 11px; margin-top: 4px; font-weight: 600; }
         #iw-weather .t { color: #00d4ff; }
+
+        /* Tela inicial: pedir o ID antes de rodar */
+        #setup {
+            position: fixed; inset: 0;
+            background: #0b0e13;
+            color: #fff;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center; padding: 6vh 6vw;
+            z-index: 9995;
+        }
+        #setup h1 { color: #00d4ff; font-size: 30px; margin-bottom: 10px; }
+        #setup p { color: #cfd6df; font-size: 17px; line-height: 1.5; max-width: 760px; margin-bottom: 26px; }
+        #setup input {
+            width: 100%; max-width: 560px; padding: 18px 20px;
+            font-size: 26px; text-align: center;
+            background: #161b22; border: 2px solid #00d4ff;
+            color: #fff; border-radius: 10px; outline: none;
+            text-transform: lowercase;
+        }
+        #setup button {
+            margin-top: 20px; padding: 16px 40px;
+            font-size: 20px; font-weight: bold;
+            background: #00d4ff; color: #04121a;
+            border: none; border-radius: 10px; cursor: pointer;
+        }
+        #setup button:focus { outline: 3px solid #fff; }
+        #setup-hint { margin-top: 26px; color: #8b97a7; font-size: 15px; max-width: 760px; line-height: 1.5; }
+        #setup-hint b { color: #e3e8ef; }
+        #setup.hidden { display: none; }
     </style>
 </head>
 <body>
@@ -152,6 +182,14 @@
     <h1>📺 Signage LV</h1>
     <p id="overlay-msg">Conectando ao servidor...</p>
     <div class="code" id="overlay-code"></div>
+</div>
+
+<div id="setup" class="hidden">
+    <h1>📺 Configurar esta tela</h1>
+    <p>Digite o <b>ID da tela</b> (o mesmo nome que você criou no painel) e confirme.</p>
+    <input type="text" id="setup-id" placeholder="ex: tcl" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done">
+    <button id="setup-ok">✅ Confirmar</button>
+    <div id="setup-hint"></div>
 </div>
 
 <div id="status">Carregando...</div>
@@ -247,6 +285,57 @@
     }
 
     // ═══════════════════════════════════════════════════════
+    //  TELA INICIAL: pedir o ID (abre o teclado) antes de rodar
+    // ═══════════════════════════════════════════════════════
+    function showSetup(errMsg) {
+        hideOverlay();
+        const s = document.getElementById('setup');
+        s.classList.remove('hidden');
+        const inp = document.getElementById('setup-id');
+        inp.value = config.screenId || '';
+        const hint = document.getElementById('setup-hint');
+
+        if (errMsg) {
+            hint.innerHTML = '<b style="color:#ff7a90">⚠️ ' + errMsg + '</b>';
+        } else {
+            hint.innerHTML = 'Carregando telas...';
+        }
+        // Mostra as telas disponíveis como dica
+        if (db) {
+            db.collection('screens').get().then((snap) => {
+                const names = [];
+                snap.forEach((d) => names.push(d.id));
+                names.sort();
+                const list = names.length ? ('Telas no painel: <b>' + names.join('</b>, <b>') + '</b>')
+                                          : 'Nenhuma tela criada no painel ainda.';
+                hint.innerHTML = (errMsg ? ('<b style="color:#ff7a90">⚠️ ' + errMsg + '</b><br>') : '') + list;
+            }).catch(() => {});
+        }
+        // Foca o campo e tenta abrir o teclado da TV
+        setTimeout(() => { try { inp.focus(); inp.click(); } catch (e) {} }, 350);
+    }
+
+    function confirmSetup() {
+        const v = (document.getElementById('setup-id').value || '').trim().toLowerCase();
+        if (!v) { try { document.getElementById('setup-id').focus(); } catch (e) {} return; }
+        config.screenId = v;
+        try { localStorage.setItem('signage-config', JSON.stringify(config)); } catch (e) {}
+        document.getElementById('setup').classList.add('hidden');
+        subscribeToScreen();
+    }
+
+    (function wireSetup() {
+        const ok = document.getElementById('setup-ok');
+        const inp = document.getElementById('setup-id');
+        if (ok) ok.addEventListener('click', confirmSetup);
+        if (inp) inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.keyCode === 13 || e.keyCode === 66 || e.keyCode === 23) {
+                e.preventDefault(); confirmSetup();
+            }
+        });
+    })();
+
+    // ═══════════════════════════════════════════════════════
     //  CONFIG LOCAL (por dispositivo) — localStorage
     // ═══════════════════════════════════════════════════════
     function loadConfig() {
@@ -326,8 +415,7 @@
         config.screenId = (config.screenId || '').trim().toLowerCase();
 
         if (!config.screenId) {
-            showOverlay('Esta TV ainda não tem um ID de Tela.',
-                        'Abra o painel (F10) e informe o ID');
+            showSetup();
             return;
         }
         if (!db) return;
@@ -337,9 +425,8 @@
         screenUnsub = db.collection('screens').doc(config.screenId)
             .onSnapshot((doc) => {
                 if (!doc.exists) {
-                    showOverlay('Tela "' + config.screenId + '" não encontrada no painel.',
-                                'Cadastre esta tela no painel');
                     stopPlayback();
+                    showSetup('A tela "' + config.screenId + '" não existe no painel. Confira o nome e digite de novo.');
                     return;
                 }
                 const data = doc.data() || {};
@@ -452,8 +539,9 @@
     // ═══════════════════════════════════════════════════════
     //  REPRODUÇÃO (pré-carrega o próximo pra não travar na troca)
     // ═══════════════════════════════════════════════════════
-    let currentItem = null;   // { el, type, index }
-    let preloadItem = null;   // { el, type, index }
+    let currentItem = null;   // item visível agora
+    let preloadItem = null;   // próximo, já bufferizando (invisível)
+    let pendingItem = null;   // próximo, aguardando ficar PRONTO pra aparecer
 
     function makeItem(index) {
         const url = mediaList[index];
@@ -463,17 +551,26 @@
         return { el: el, type: type, index: index };
     }
 
+    function killItem(it) {
+        if (!it) return;
+        it._done = true; it._pending = false;
+        if (it._wd) { clearInterval(it._wd); it._wd = null; }
+        if (it._revealTimer) { clearTimeout(it._revealTimer); it._revealTimer = null; }
+        try { const v = it.el && it.el._video; if (v) { v.onended = null; v.onerror = null; v.pause(); } } catch (e) {}
+        try { if (it.el) it.el.remove(); } catch (e) {}
+    }
+
     function preloadNext() {
         if (mediaList.length < 2) { preloadItem = null; return; }
         const nextIdx = (currentIndex + 1) % mediaList.length;
-        preloadItem = makeItem(nextIdx); // fica invisível, só bufferizando
+        preloadItem = makeItem(nextIdx); // invisível, só bufferizando
     }
 
     function restartPlayback() {
         clearTimeout(currentTimeout);
-        const c = document.getElementById('container');
-        c.querySelectorAll('.media-item').forEach(i => i.remove());
-        currentItem = null; preloadItem = null;
+        killItem(currentItem); killItem(preloadItem); killItem(pendingItem);
+        currentItem = null; preloadItem = null; pendingItem = null;
+        document.getElementById('container').querySelectorAll('.media-item').forEach(i => i.remove());
         if (mediaList.length === 0) return;
         if (currentIndex >= mediaList.length) currentIndex = 0;
         isPlaying = true;
@@ -483,7 +580,8 @@
     function stopPlayback() {
         clearTimeout(currentTimeout);
         isPlaying = false;
-        currentItem = null; preloadItem = null;
+        killItem(currentItem); killItem(preloadItem); killItem(pendingItem);
+        currentItem = null; preloadItem = null; pendingItem = null;
         document.getElementById('container').querySelectorAll('.media-item').forEach(i => i.remove());
     }
 
@@ -495,61 +593,83 @@
         advance();
     }
 
-    // Vigia o vídeo: se não iniciar (15s) ou travar no meio (~10s parado), pula
+    // Vigia o vídeo já tocando: se travar no meio (~10s parado), pula
     function watchVideo(item, v) {
-        let last = -1, stalls = 0, waited = 0;
+        let last = -1, stalls = 0;
         if (item._wd) clearInterval(item._wd);
         item._wd = setInterval(() => {
             if (item._done) { clearInterval(item._wd); item._wd = null; return; }
-            waited++;
-            if (v.currentTime <= 0.05) {                 // ainda não começou a tocar
-                if (waited >= 15) { console.warn('Vídeo não iniciou — pulando'); advanceFrom(item); }
-                return;
-            }
             if (Math.abs(v.currentTime - last) < 0.05) { stalls++; } else { stalls = 0; last = v.currentTime; }
             if (stalls >= 10) { console.warn('Vídeo travado — pulando'); advanceFrom(item); }
         }, 1000);
     }
 
+    // Prepara o próximo item mas SÓ o mostra quando estiver pronto (sem ícone de "travado")
     function showCurrent() {
+        if (pendingItem && pendingItem !== currentItem) { killItem(pendingItem); pendingItem = null; }
+
         let item;
         if (preloadItem && preloadItem.index === currentIndex) {
-            item = preloadItem; preloadItem = null;        // já está bufferizado
+            item = preloadItem; preloadItem = null;
         } else {
-            if (preloadItem) { try { if (preloadItem._wd) clearInterval(preloadItem._wd); preloadItem.el.remove(); } catch (e) {} preloadItem = null; }
+            if (preloadItem) { killItem(preloadItem); preloadItem = null; }
             item = makeItem(currentIndex);
         }
+        item._pending = true;
+        pendingItem = item;
+        console.log(`▶️ [${currentIndex + 1}/${mediaList.length}] ${item.type}`);
+
+        if (item.type === 'video' && item.el._video) {
+            const v = item.el._video;
+            v.onerror = () => { console.warn('Erro no vídeo — pulando'); advanceFrom(item); };
+            // só revela o vídeo quando ele REALMENTE começar a tocar
+            v.addEventListener('playing', function onPlaying() {
+                v.removeEventListener('playing', onPlaying);
+                reveal(item);
+            });
+            const pr = v.play();
+            if (pr && pr.catch) pr.catch(() => {});
+            item._revealTimer = setTimeout(() => reveal(item), 12000); // segurança
+        } else {
+            const img = item.el.querySelector('img');
+            if (img && !img.complete) {
+                img.addEventListener('load', () => reveal(item), { once: true });
+                img.addEventListener('error', () => reveal(item), { once: true });
+                item._revealTimer = setTimeout(() => reveal(item), 8000);
+            } else {
+                reveal(item); // imagem já carregada, youtube/iframe
+            }
+        }
+    }
+
+    // Revela o item preparado (fade-in), esconde o anterior e agenda a próxima troca
+    function reveal(item) {
+        if (!item || !item._pending || item._done) return;
+        item._pending = false;
+        if (item._revealTimer) { clearTimeout(item._revealTimer); item._revealTimer = null; }
 
         const prev = currentItem;
         currentItem = item;
-        console.log(`▶️ [${currentIndex + 1}/${mediaList.length}] ${item.type}`);
+        if (pendingItem === item) pendingItem = null;
 
-        // fade-in
         requestAnimationFrame(() => { item.el.style.opacity = '1'; item.el.classList.add('active'); });
 
-        // agenda a troca (com segurança contra travamento)
         clearTimeout(currentTimeout);
         if (item.type === 'video' && item.el._video) {
             const v = item.el._video;
-            try { v.currentTime = 0; } catch (e) {}
             v.onended = () => advanceFrom(item);
-            v.onerror = () => { console.warn('Erro no vídeo — pulando'); advanceFrom(item); };
-            const pr = v.play();
-            if (pr && pr.catch) pr.catch(() => {});
-            if (config.videoDuration === 0) {
-                watchVideo(item, v);                       // nunca trava: pula se falhar
-            } else {
-                currentTimeout = setTimeout(() => advanceFrom(item), config.videoDuration);
-            }
+            if (config.videoDuration === 0) { watchVideo(item, v); }
+            else { currentTimeout = setTimeout(() => advanceFrom(item), config.videoDuration); }
         } else if (item.type === 'youtube') {
             currentTimeout = setTimeout(() => advanceFrom(item), config.youtubeDuration);
         } else {
             currentTimeout = setTimeout(() => advanceFrom(item), config.imageDuration);
         }
 
-        // remove o anterior depois do fade (e libera memória do vídeo)
-        if (prev) {
+        // esconde o anterior depois do fade (mantém na tela até AGORA = sem buraco)
+        if (prev && prev !== item) {
             if (prev._wd) { clearInterval(prev._wd); prev._wd = null; }
+            prev._done = true;
             prev.el.style.opacity = '0';
             prev.el.classList.remove('active');
             const pv = prev.el._video;
@@ -559,7 +679,6 @@
             }, config.fadeDuration + 150);
         }
 
-        // já pré-carrega o próximo item
         preloadNext();
     }
 
