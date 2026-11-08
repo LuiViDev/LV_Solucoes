@@ -507,7 +507,7 @@
 
         if (type === 'video') {
             const video = document.createElement('video');
-            video.src = url;          // URL original (sem transformação que atrase o carregamento)
+            video.src = optimizeVideoUrl(url);   // Cloudinary entrega mais leve (q_auto)
             video.muted = true;
             video.playsInline = true;
             video.autoplay = false;   // só toca quando ficar ativo
@@ -629,7 +629,7 @@
             });
             const pr = v.play();
             if (pr && pr.catch) pr.catch(() => {});
-            item._revealTimer = setTimeout(() => reveal(item), 12000); // segurança
+            item._revealTimer = setTimeout(() => reveal(item), 20000); // segurança (cobre 1º processamento do Cloudinary)
         } else {
             const img = item.el.querySelector('img');
             if (img && !img.complete) {
